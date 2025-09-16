@@ -4,6 +4,7 @@ import com.omdb.movie.JavengersCinema.dto.ApiResponse;
 import com.omdb.movie.JavengersCinema.dto.MovieRequest;
 import com.omdb.movie.JavengersCinema.dto.MovieResponse;
 import com.omdb.movie.JavengersCinema.dto.MovieSearchRequest;
+import com.omdb.movie.JavengersCinema.dto.OmdbMovieDetailDto;
 import com.omdb.movie.JavengersCinema.dto.OmdbSearchDto;
 import com.omdb.movie.JavengersCinema.dto.OmdbSearchResponse;
 import com.omdb.movie.JavengersCinema.dto.TrailerRequest;
@@ -70,17 +71,17 @@ public class MovieServiceImpl implements MovieService {
     }
 
     @Override
-    public ApiResponse<OmdbSearchDto> getMovieFromOmdbById(String imdbId) {
+    public ApiResponse<OmdbMovieDetailDto> getMovieDetailOmdbById(String imdbId) {
         UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromHttpUrl(OMDB_API_BASE_URL)
                 .queryParam("apikey", omdbApiKey)
                 .queryParam("i", imdbId);
 
         try {
-            OmdbSearchDto response = restTemplate.getForObject(uriBuilder.toUriString(), OmdbSearchDto.class);
-            if (response != null && response.getTitle() != null) { // OMDb returns a movie with a title if found
+            OmdbMovieDetailDto response = restTemplate.getForObject(uriBuilder.toUriString(), OmdbMovieDetailDto.class);
+            if (response != null && "True".equals(response.getResponse())) { // OMDb returns "Response":"True" if found
                 return ApiResponse.success("Movie fetched successfully from OMDb", response);
             } else {
-                throw new ResourceNotFoundException("Movie not found from OMDb for IMDb ID: " + imdbId);
+                return ApiResponse.error(response != null ? response.getError() : "Movie not found from OMDb for IMDb ID: " + imdbId);
             }
         } catch (Exception e) {
             return ApiResponse.error("Error fetching movie from OMDb by ID: " + e.getMessage());
@@ -95,11 +96,24 @@ public class MovieServiceImpl implements MovieService {
 
         // If imdbID is provided but other details are missing, try to fetch from OMDb
         if (movieRequest.getImdbID() != null && movieRequest.getTitle() == null) {
-            ApiResponse<OmdbSearchDto> omdbResponse = getMovieFromOmdbById(movieRequest.getImdbID());
+            ApiResponse<OmdbMovieDetailDto> omdbResponse = getMovieDetailOmdbById(movieRequest.getImdbID());
             if (omdbResponse.isSuccess()) {
-                OmdbSearchDto omdbMovie = omdbResponse.getData();
-                BeanUtils.copyProperties(omdbMovie, movie);
-                movie.setImdbID(omdbMovie.getImdbID()); // Ensure imdbID is set from OMDb
+                OmdbMovieDetailDto omdbMovie = omdbResponse.getData();
+                // Manually copy properties that exist in MovieDetail and OmdbMovieDetailDto
+                movie.setImdbID(omdbMovie.getImdbID());
+                movie.setTitle(omdbMovie.getTitle());
+                try {
+                    movie.setYear(Integer.parseInt(omdbMovie.getYear()));
+                } catch (NumberFormatException e) {
+                    movie.setYear(null); // Handle cases where year is not a valid integer
+                }
+                movie.setType(omdbMovie.getType());
+                movie.setPoster(omdbMovie.getPoster());
+                movie.setPlot(omdbMovie.getPlot());
+                movie.setDirector(omdbMovie.getDirector());
+                movie.setActors(omdbMovie.getActors());
+                movie.setRuntime(omdbMovie.getRuntime());
+                movie.setImdbRating(omdbMovie.getImdbRating());
             } else {
                 return ApiResponse.error("Failed to fetch movie details from OMDb for IMDb ID: " + movieRequest.getImdbID());
             }
@@ -149,7 +163,7 @@ public class MovieServiceImpl implements MovieService {
         }
 
         // 3. If not found locally, fetch from OMDb by IMDb ID or title
-        ApiResponse<OmdbSearchDto> omdbResponse = getMovieFromOmdbById(identifier); // Try as IMDb ID first
+        ApiResponse<OmdbMovieDetailDto> omdbResponse = getMovieDetailOmdbById(identifier); // Try as IMDb ID first
         if (!omdbResponse.isSuccess()) {
             // If not found by IMDb ID, try searching by title
             MovieSearchRequest searchRequest = new MovieSearchRequest(identifier, null, null, 1);
@@ -158,15 +172,28 @@ public class MovieServiceImpl implements MovieService {
             if (omdbSearchResponse.isSuccess() && omdbSearchResponse.getData().getSearch() != null && !omdbSearchResponse.getData().getSearch().isEmpty()) {
                 // Take the first result from OMDb search
                 OmdbSearchDto firstOmdbMovie = omdbSearchResponse.getData().getSearch().get(0);
-                omdbResponse = getMovieFromOmdbById(firstOmdbMovie.getImdbID()); // Get full details
+                omdbResponse = getMovieDetailOmdbById(firstOmdbMovie.getImdbID()); // Get full details
             }
         }
 
         if (omdbResponse.isSuccess()) {
-            OmdbSearchDto omdbMovie = omdbResponse.getData();
+            OmdbMovieDetailDto omdbMovie = omdbResponse.getData();
             MovieDetail newMovie = new MovieDetail();
-            BeanUtils.copyProperties(omdbMovie, newMovie);
-            newMovie.setImdbID(omdbMovie.getImdbID()); // Ensure imdbID is set from OMDb
+            // Manually copy properties that exist in MovieDetail and OmdbMovieDetailDto
+            newMovie.setImdbID(omdbMovie.getImdbID());
+            newMovie.setTitle(omdbMovie.getTitle());
+            try {
+                newMovie.setYear(Integer.parseInt(omdbMovie.getYear()));
+                } catch (NumberFormatException e) {
+                newMovie.setYear(null); // Handle cases where year is not a valid integer
+            }
+            newMovie.setType(omdbMovie.getType());
+            newMovie.setPoster(omdbMovie.getPoster());
+            newMovie.setPlot(omdbMovie.getPlot());
+            newMovie.setDirector(omdbMovie.getDirector());
+            newMovie.setActors(omdbMovie.getActors());
+            newMovie.setRuntime(omdbMovie.getRuntime());
+            newMovie.setImdbRating(omdbMovie.getImdbRating());
 
             MovieDetail savedMovie = movieRepository.save(newMovie);
             MovieResponse movieResponse = new MovieResponse();

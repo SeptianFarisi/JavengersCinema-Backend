@@ -4,6 +4,7 @@ import com.omdb.movie.JavengersCinema.dto.ApiResponse;
 import com.omdb.movie.JavengersCinema.dto.MovieRequest;
 import com.omdb.movie.JavengersCinema.dto.MovieResponse;
 import com.omdb.movie.JavengersCinema.dto.MovieSearchRequest;
+import com.omdb.movie.JavengersCinema.dto.OmdbMovieDetailDto;
 import com.omdb.movie.JavengersCinema.dto.OmdbSearchDto;
 import com.omdb.movie.JavengersCinema.dto.OmdbSearchResponse;
 import com.omdb.movie.JavengersCinema.dto.TrailerRequest;
@@ -39,8 +40,8 @@ public class MovieController {
     }
 
     @GetMapping("/omdb/{imdbId}")
-    public ResponseEntity<ApiResponse<OmdbSearchDto>> getMovieFromOmdbById(@PathVariable String imdbId) {
-        ApiResponse<OmdbSearchDto> response = movieService.getMovieFromOmdbById(imdbId);
+    public ResponseEntity<ApiResponse<OmdbMovieDetailDto>> getMovieFromOmdbById(@PathVariable String imdbId) {
+        ApiResponse<OmdbMovieDetailDto> response = movieService.getMovieDetailOmdbById(imdbId);
         return ResponseEntity.ok(response);
     }
 

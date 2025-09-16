@@ -2,6 +2,7 @@ package com.omdb.movie.JavengersCinema.service;
 
 import com.omdb.movie.JavengersCinema.dto.ApiResponse;
 import com.omdb.movie.JavengersCinema.dto.MovieSearchRequest;
+import com.omdb.movie.JavengersCinema.dto.OmdbMovieDetailDto;
 import com.omdb.movie.JavengersCinema.dto.OmdbSearchDto;
 import com.omdb.movie.JavengersCinema.dto.OmdbSearchResponse;
 import com.omdb.movie.JavengersCinema.dto.MovieRequest;
@@ -14,7 +15,7 @@ import java.util.List;
 public interface MovieService {
     // OMDb API operations
     ApiResponse<OmdbSearchResponse> searchMoviesFromOmdb(MovieSearchRequest request);
-    ApiResponse<OmdbSearchDto> getMovieFromOmdbById(String imdbId);
+    ApiResponse<OmdbMovieDetailDto> getMovieDetailOmdbById(String imdbId);
 
     // Local database CRUD operations
     ApiResponse<MovieResponse> saveMovie(MovieRequest movieRequest);
