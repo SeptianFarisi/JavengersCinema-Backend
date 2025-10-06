@@ -25,6 +25,10 @@ public interface MovieService {
     ApiResponse<MovieResponse> updateMovie(Long id, MovieRequest movieRequest);
     ApiResponse<Void> deleteMovie(Long id);
 
+    // TMDB API operations
+    ApiResponse<Long> getTmdbMovieIdByImdbId(String imdbId);
+    ApiResponse<List<TrailerResponse>> getTrailersFromTmdb(Long tmdbMovieId);
+
     // Trailer CRUD operations
     ApiResponse<TrailerResponse> createTrailer(TrailerRequest trailerRequest);
     ApiResponse<TrailerResponse> updateTrailer(Long trailerId, TrailerRequest trailerRequest);

@@ -7,6 +7,9 @@ import com.omdb.movie.JavengersCinema.dto.MovieSearchRequest;
 import com.omdb.movie.JavengersCinema.dto.OmdbMovieDetailDto;
 import com.omdb.movie.JavengersCinema.dto.OmdbSearchDto;
 import com.omdb.movie.JavengersCinema.dto.OmdbSearchResponse;
+import com.omdb.movie.JavengersCinema.dto.TmdbFindByIdResponse;
+import com.omdb.movie.JavengersCinema.dto.TmdbMovieVideosResponse;
+import com.omdb.movie.JavengersCinema.dto.TmdbVideoResult;
 import com.omdb.movie.JavengersCinema.dto.TrailerRequest;
 import com.omdb.movie.JavengersCinema.dto.TrailerResponse;
 import com.omdb.movie.JavengersCinema.exception.ResourceNotFoundException;
@@ -29,11 +32,14 @@ public class MovieServiceImpl implements MovieService {
 
     @Value("${omdb.api.key}")
     private String omdbApiKey;
+    @Value("${tmdb.api.key}")
+    private String tmdbApiKey;
 
     private final RestTemplate restTemplate;
     private final MovieRepository movieRepository;
     private final TrailerRepository trailerRepository;
     private static final String OMDB_API_BASE_URL = "http://www.omdbapi.com/";
+    private static final String TMDB_API_BASE_URL = "https://api.themoviedb.org/3";
 
     public MovieServiceImpl(RestTemplate restTemplate, MovieRepository movieRepository, TrailerRepository trailerRepository) {
         this.restTemplate = restTemplate;
@@ -296,4 +302,42 @@ public class MovieServiceImpl implements MovieService {
         return ApiResponse.success("Trailer deleted successfully", null);
     }
 
+    @Override
+    public ApiResponse<Long> getTmdbMovieIdByImdbId(String imdbId) {
+        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromHttpUrl(TMDB_API_BASE_URL + "/find/" + imdbId)
+                .queryParam("api_key", tmdbApiKey)
+                .queryParam("external_source", "imdb_id");
+
+        try {
+            TmdbFindByIdResponse response = restTemplate.getForObject(uriBuilder.toUriString(), TmdbFindByIdResponse.class);
+            if (response != null && response.getMovieResults() != null && !response.getMovieResults().isEmpty()) {
+                return ApiResponse.success("TMDB Movie ID fetched successfully", response.getMovieResults().get(0).getId());
+            } else {
+                return ApiResponse.error("TMDB Movie ID not found for IMDb ID: " + imdbId);
+            }
+        } catch (Exception e) {
+            return ApiResponse.error("Error fetching TMDB Movie ID: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public ApiResponse<List<TrailerResponse>> getTrailersFromTmdb(Long tmdbMovieId) {
+        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromHttpUrl(TMDB_API_BASE_URL + "/movie/" + tmdbMovieId + "/videos")
+                .queryParam("api_key", tmdbApiKey);
+
+        try {
+            TmdbMovieVideosResponse response = restTemplate.getForObject(uriBuilder.toUriString(), TmdbMovieVideosResponse.class);
+            if (response != null && response.getResults() != null && !response.getResults().isEmpty()) {
+                List<TrailerResponse> trailerResponses = response.getResults().stream()
+                        .filter(video -> "Trailer".equalsIgnoreCase(video.getType()) && "YouTube".equalsIgnoreCase(video.getSite()))
+                        .map(video -> new TrailerResponse(null, video.getName(), "https://www.youtube.com/watch?v=" + video.getKey(), null))
+                        .collect(Collectors.toList());
+                return ApiResponse.success("Trailers fetched successfully from TMDB", trailerResponses);
+            } else {
+                return ApiResponse.error("No trailers found from TMDB for movie ID: " + tmdbMovieId);
+            }
+        } catch (Exception e) {
+            return ApiResponse.error("Error fetching trailers from TMDB: " + e.getMessage());
+        }
+    }
 }

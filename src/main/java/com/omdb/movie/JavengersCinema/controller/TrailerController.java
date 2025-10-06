@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/trailers")
 public class TrailerController {
@@ -42,5 +44,16 @@ public class TrailerController {
     public ResponseEntity<ApiResponse<Void>> deleteTrailer(@PathVariable Long trailerId) {
         ApiResponse<Void> response = movieService.deleteTrailer(trailerId);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/tmdb/{imdbId}")
+    public ResponseEntity<ApiResponse<List<TrailerResponse>>> getTrailersFromTmdb(@PathVariable String imdbId) {
+        ApiResponse<Long> tmdbIdResponse = movieService.getTmdbMovieIdByImdbId(imdbId);
+        if (!tmdbIdResponse.isSuccess()) {
+            return new ResponseEntity<>(ApiResponse.error(tmdbIdResponse.getMessage()), HttpStatus.NOT_FOUND);
+        }
+        Long tmdbMovieId = tmdbIdResponse.getData();
+        ApiResponse<List<TrailerResponse>> trailersResponse = movieService.getTrailersFromTmdb(tmdbMovieId);
+        return ResponseEntity.ok(trailersResponse);
     }
 }

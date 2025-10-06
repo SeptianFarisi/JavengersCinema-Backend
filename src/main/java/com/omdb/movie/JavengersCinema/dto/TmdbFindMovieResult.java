@@ -7,9 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class TrailerResponse {
+public class TmdbFindMovieResult {
     private Long id;
-    private String name;
-    private String trailerUrl;
-    private Long movieId;
+    // Only need id for now, other fields can be added if needed later
 }
